@@ -3,7 +3,9 @@ use iced::widget::{button, column, container, horizontal_space, row, scrollable,
 use iced::Length::Fill;
 use iced::{Alignment, Element, Length};
 
-use super::Sale;
+use crate::Hotkey;
+
+use super::{Operation, Sale};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -105,4 +107,11 @@ pub fn view(sale: &Sale) -> Element<Message> {
     )
     .padding(20)
     .into()
+}
+
+pub fn handle_hotkey(hotkey: Hotkey) -> crate::Action<Operation, Message> {
+    match hotkey {
+        Hotkey::Escape => crate::Action::operation(Operation::Back),
+        _ => crate::Action::none(),
+    }
 }

@@ -1,5 +1,8 @@
 //! View and edit sales
-use iced::Element;
+use iced::{
+    widget::{focus_next, text_input},
+    Element,
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{tax::TaxGroup, Hotkey};
@@ -65,7 +68,7 @@ impl Default for Sale {
             items: Vec::new(),
             service_charge_percent: None,
             gratuity_amount: None,
-            name: String::from("New Sale"),
+            name: String::new(),
         }
     }
 }
@@ -123,14 +126,22 @@ pub fn update(sale: &mut Sale, message: Message) -> Action {
     match message {
         Message::Show(msg) => match msg {
             show::Message::Back => Action::operation(Operation::Back),
-            show::Message::StartEdit => Action::operation(Operation::StartEdit),
+            show::Message::StartEdit => {
+                Action::operation(Operation::StartEdit).with_task(focus_next())
+            }
         },
         Message::Edit(msg) => match msg {
             edit::Message::Cancel => Action::operation(Operation::Cancel),
             edit::Message::Save => Action::operation(Operation::Save),
-            edit::Message::NameChanged(name) => {
+            edit::Message::NameInput(name) => {
                 sale.name = name;
                 Action::none()
+            }
+            edit::Message::NameSubmit => {
+                if sale.items.is_empty() {
+                    sale.items.push(SaleItem::default());
+                }
+                Action::task(focus_next())
             }
             edit::Message::AddItem => {
                 sale.items.push(SaleItem::default());
@@ -143,25 +154,43 @@ pub fn update(sale: &mut Sale, message: Message) -> Action {
             edit::Message::UpdateItem(id, update) => {
                 if let Some(item) = sale.items.iter_mut().find(|i| i.id == id) {
                     match update {
-                        edit::ItemUpdate::Name(name) => item.name = name,
-                        edit::ItemUpdate::Price(price) => {
+                        edit::Field::Name(name) => item.name = name,
+                        edit::Field::Price(price) => {
                             item.price = if price.is_empty() {
                                 None
                             } else {
                                 price.parse().ok()
                             };
                         }
-                        edit::ItemUpdate::Quantity(qty) => {
+                        edit::Field::Quantity(qty) => {
                             item.quantity = if qty.is_empty() {
                                 None
                             } else {
                                 qty.parse().ok()
                             };
                         }
-                        edit::ItemUpdate::TaxGroup(group) => item.tax_group = group,
+                        edit::Field::TaxGroup(group) => item.tax_group = group,
                     }
                 }
                 Action::none()
+            }
+            edit::Message::SubmitItem(id) => {
+                // try to move to the next 'field' in this list. if all items
+                // are filled out, add a new item and move to it instead
+                if let Some(item) = sale.items.iter().find(|i| i.id == id) {
+                    return if item.name.is_empty() {
+                        Action::task(text_input::focus(edit::form_id("name", id)))
+                    } else if item.quantity.is_none() {
+                        Action::task(text_input::focus(edit::form_id("quantity", id)))
+                    } else if item.price.is_none() {
+                        Action::task(text_input::focus(edit::form_id("price", id)))
+                    } else {
+                        sale.items.push(SaleItem::default());
+                        Action::task(text_input::focus(edit::form_id("name", id + 1)))
+                    };
+                } else {
+                    Action::none()
+                }
             }
             edit::Message::UpdateServiceCharge(val) => {
                 sale.service_charge_percent = Some(val);
@@ -183,11 +212,15 @@ pub fn view(sale: &Sale, mode: Mode) -> Element<Message> {
 }
 
 pub fn handle_hotkey(_: &Sale, mode: Mode, hotkey: Hotkey) -> Action {
-    match hotkey {
-        Hotkey::Escape => Action::operation(Operation::Cancel),
-        _ => match mode {
-            Mode::View => Action::none(),
-            Mode::Edit => edit::handle_hotkey(hotkey).map(Message::Edit),
-        },
+    // match hotkey {
+    //     Hotkey::Escape => Action::operation(Operation::Cancel),
+    //     _ => match mode {
+    //         Mode::View => Action::none(),
+    //         Mode::Edit => edit::handle_hotkey(hotkey).map(Message::Edit),
+    //     },
+    // }
+    match mode {
+        Mode::View => show::handle_hotkey(hotkey).map(Message::Show),
+        Mode::Edit => edit::handle_hotkey(hotkey).map(Message::Edit),
     }
 }

@@ -1,16 +1,17 @@
 use iced::event;
 use iced::keyboard::key::Named;
 use iced::keyboard::{self, Key, Modifiers};
+use iced::widget::focus_next;
 use iced::{Element, Size, Subscription, Task};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-mod action;
+mod common;
 mod list;
 mod sale;
 mod tax;
 
-pub use action::Action;
+pub use common::Action;
 use sale::Sale;
 
 fn main() -> iced::Result {
@@ -99,6 +100,7 @@ impl App {
             Message::List(list::Message::NewSale) => {
                 self.draft = (None, Sale::default());
                 self.screen = Screen::Sale(sale::Mode::Edit, None);
+                return focus_next();
             }
             Message::List(list::Message::SelectSale(id)) => {
                 self.screen = Screen::Sale(sale::Mode::View, Some(id));

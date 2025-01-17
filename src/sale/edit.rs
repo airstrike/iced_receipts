@@ -8,14 +8,16 @@ use iced::{Alignment, Element, Length};
 
 use crate::Hotkey;
 
-use super::{Sale, TaxGroup};
+use super::{Operation, Sale, TaxGroup};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    NameChanged(String),
+    NameInput(String),
+    NameSubmit,
     AddItem,
     RemoveItem(usize),
-    UpdateItem(usize, ItemUpdate),
+    UpdateItem(usize, Field),
+    SubmitItem(usize),
     UpdateServiceCharge(f32),
     UpdateGratuity(f32),
     Save,
@@ -23,7 +25,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub enum ItemUpdate {
+pub enum Field {
     Name(String),
     Price(String),
     Quantity(String),
@@ -34,7 +36,8 @@ pub fn view(sale: &Sale) -> Element<Message> {
     let header = row![
         horizontal_space().width(40),
         text_input("Sale Name", &sale.name)
-            .on_input(Message::NameChanged)
+            .on_input(Message::NameInput)
+            .on_submit(Message::NameSubmit)
             .padding(5),
         horizontal_space(),
         row![
@@ -68,27 +71,27 @@ pub fn view(sale: &Sale) -> Element<Message> {
                 container(
                     row![
                         text_input("Item name", &item.name)
-                            .on_input(|s| Message::UpdateItem(item.id.clone(), ItemUpdate::Name(s)))
+                            .id(form_id("name", item.id))
+                            .on_input(|s| Message::UpdateItem(item.id, Field::Name(s)))
+                            .on_submit(Message::SubmitItem(item.id))
                             .width(Fill)
                             .padding(5),
                         text_input("Quantity", &item.quantity_string())
+                            .id(form_id("quantity", item.id))
                             .align_x(Alignment::Center)
-                            .on_input(|s| Message::UpdateItem(
-                                item.id.clone(),
-                                ItemUpdate::Quantity(s)
-                            ))
+                            .on_input(|s| Message::UpdateItem(item.id.clone(), Field::Quantity(s)))
+                            .on_submit(Message::SubmitItem(item.id))
                             .width(80.0)
                             .padding(5),
                         text_input("Price", &item.price_string())
+                            .id(form_id("price", item.id))
                             .align_x(Alignment::End)
-                            .on_input(|s| Message::UpdateItem(
-                                item.id.clone(),
-                                ItemUpdate::Price(s)
-                            ))
+                            .on_input(|s| Message::UpdateItem(item.id, Field::Price(s)))
+                            .on_submit(Message::SubmitItem(item.id))
                             .width(100.0)
                             .padding(5),
                         pick_list(&TaxGroup::ALL[..], Some(item.tax_group), move |tax_group| {
-                            Message::UpdateItem(item.id.clone(), ItemUpdate::TaxGroup(tax_group))
+                            Message::UpdateItem(item.id, Field::TaxGroup(tax_group))
                         })
                         .width(140.0),
                         text(format!("${:.2}", item.price() * item.quantity()))
@@ -96,7 +99,7 @@ pub fn view(sale: &Sale) -> Element<Message> {
                             .width(100.0),
                         button("×")
                             .width(25.0)
-                            .on_press(Message::RemoveItem(item.id.clone()))
+                            .on_press(Message::RemoveItem(item.id))
                             .style(button::danger)
                     ]
                     .spacing(5)
@@ -129,7 +132,8 @@ pub fn view(sale: &Sale) -> Element<Message> {
                     0.0
                 } else {
                     s.parse().ok().unwrap_or(0.0)
-                })),
+                }))
+                .on_submit(Message::Save),
                 text("%")
             ]
             .spacing(5),
@@ -155,7 +159,8 @@ pub fn view(sale: &Sale) -> Element<Message> {
                 0.0
             } else {
                 s.parse().ok().unwrap_or(0.0)
-            })),
+            }))
+            .on_submit(Message::Save),
             horizontal_space(),
             text(format!("${:.2}", sale.gratuity_amount.unwrap_or(0.0)))
         ],
@@ -192,7 +197,7 @@ pub fn view(sale: &Sale) -> Element<Message> {
     .into()
 }
 
-pub fn handle_hotkey<T>(hotkey: Hotkey) -> crate::Action<T, Message> {
+pub fn handle_hotkey(hotkey: Hotkey) -> crate::Action<Operation, Message> {
     match hotkey {
         Hotkey::Tab(modifier) => {
             if modifier.shift() {
@@ -203,4 +208,8 @@ pub fn handle_hotkey<T>(hotkey: Hotkey) -> crate::Action<T, Message> {
         }
         _ => crate::Action::none(),
     }
+}
+
+pub fn form_id(field: &str, id: usize) -> text_input::Id {
+    text_input::Id::new(format!("{}-{}", field, id))
 }

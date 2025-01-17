@@ -126,7 +126,6 @@ pub fn update(sale: &mut Sale, message: Message) -> Action {
             show::Message::StartEdit => Action::operation(Operation::StartEdit),
         },
         Message::Edit(msg) => match msg {
-            edit::Message::Back => Action::operation(Operation::Back),
             edit::Message::Cancel => Action::operation(Operation::Cancel),
             edit::Message::Save => Action::operation(Operation::Save),
             edit::Message::NameChanged(name) => {
@@ -185,7 +184,7 @@ pub fn view(sale: &Sale, mode: Mode) -> Element<Message> {
 
 pub fn handle_hotkey(_: &Sale, mode: Mode, hotkey: Hotkey) -> Action {
     match hotkey {
-        Hotkey::Escape => Action::operation(Operation::Back),
+        Hotkey::Escape => Action::operation(Operation::Cancel),
         _ => match mode {
             Mode::View => Action::none(),
             Mode::Edit => edit::handle_hotkey(hotkey).map(Message::Edit),

@@ -26,25 +26,25 @@ fn main() -> iced::Result {
 #[derive(Debug)]
 enum Screen {
     List,
-    Sale(sale::Mode, usize),
+    Sale(sale::Mode, Option<usize>),
 }
 
 #[derive(Debug)]
 enum Message {
     List(list::Message),
-    Sale(usize, sale::Message),
+    Sale(Option<usize>, sale::Message),
     Hotkey(Hotkey),
 }
 
 #[derive(Debug)]
 enum Operation {
-    Sale(usize, sale::Operation),
+    Sale(Option<usize>, sale::Operation),
 }
 
 struct App {
     screen: Screen,
     sales: HashMap<usize, sale::Sale>,
-    pending_sale: (usize, sale::Sale),
+    draft: (Option<usize>, sale::Sale),
     next_sale_id: AtomicUsize,
 }
 
@@ -55,16 +55,27 @@ impl App {
 
     fn title(&self) -> String {
         match self.screen {
-            Screen::List => "iced • Receipt Breakdown".to_string(),
+            Screen::List => "iced Receipts".to_string(),
             Screen::Sale(mode, id) => {
-                let sale_name = if id == self.pending_sale.0 {
-                    "New Sale".to_string()
+                let sale_name = if self.draft.0 == id {
+                    self.draft.1.name.clone()
                 } else {
-                    self.sales[&id].name.clone()
+                    self.sales[&id.unwrap()].name.clone()
                 };
+
+                let sale_name = format!(
+                    "{} {}",
+                    if sale_name.is_empty() {
+                        "Untitled sale"
+                    } else {
+                        &sale_name
+                    },
+                    id.map_or("".to_string(), |id| format!("(#{id})"))
+                );
+
                 match mode {
-                    sale::Mode::View => format!("iced • {}", sale_name),
-                    sale::Mode::Edit => format!("iced • {} • Edit", sale_name),
+                    sale::Mode::View => format!("iced Receipts • {}", sale_name),
+                    sale::Mode::Edit => format!("iced Receipts • {} • Edit", sale_name),
                 }
             }
         }
@@ -76,7 +87,7 @@ impl App {
             Self {
                 screen: Screen::List,
                 sales: HashMap::new(),
-                pending_sale: (initial_id, Sale::default()),
+                draft: (None, Sale::default()),
                 next_sale_id: AtomicUsize::new(initial_id + 1),
             },
             Task::none(),
@@ -86,21 +97,23 @@ impl App {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::List(list::Message::NewSale) => {
-                self.screen = Screen::Sale(sale::Mode::Edit, self.pending_sale.0);
+                self.draft = (None, Sale::default());
+                self.screen = Screen::Sale(sale::Mode::Edit, None);
             }
             Message::List(list::Message::SelectSale(id)) => {
-                self.screen = Screen::Sale(sale::Mode::View, id);
+                self.screen = Screen::Sale(sale::Mode::View, Some(id));
             }
             Message::Hotkey(hotkey) => match self.screen {
                 Screen::List => {}
                 Screen::Sale(mode, sale_id) => {
-                    let sale = if sale_id == self.pending_sale.0 {
-                        &mut self.pending_sale.1
+                    let sale = if self.draft.0 == sale_id {
+                        &mut self.draft.1
                     } else {
-                        self.sales.get_mut(&sale_id).expect("Sale should exist")
+                        self.sales
+                            .get_mut(&sale_id.unwrap())
+                            .expect("Sale should exist")
                     };
 
-                    // Let the sale module handle the hotkey and return an Action
                     let action = sale::handle_hotkey(sale, mode, hotkey)
                         .map_operation(move |o| Operation::Sale(sale_id, o))
                         .map(move |m| Message::Sale(sale_id, m));
@@ -115,13 +128,14 @@ impl App {
                 }
             },
             Message::Sale(sale_id, msg) => {
-                let sale = if sale_id == self.pending_sale.0 {
-                    &mut self.pending_sale.1
+                let sale = if self.draft.0 == sale_id {
+                    &mut self.draft.1
                 } else {
-                    self.sales.get_mut(&sale_id).expect("Sale should exist")
+                    self.sales
+                        .get_mut(&sale_id.unwrap())
+                        .expect("Sale should exist")
                 };
 
-                // Let the sale module handle the message and return an Action
                 let action = sale::update(sale, msg)
                     .map_operation(move |o| Operation::Sale(sale_id, o))
                     .map(move |m| Message::Sale(sale_id, m));
@@ -142,10 +156,10 @@ impl App {
         match &self.screen {
             Screen::List => list::view(&self.sales).map(Message::List),
             Screen::Sale(mode, id) => {
-                let sale = if *id == self.pending_sale.0 {
-                    &self.pending_sale.1
+                let sale = if self.draft.0 == *id {
+                    &self.draft.1
                 } else {
-                    &self.sales[id]
+                    &self.sales[&id.unwrap()]
                 };
                 sale::view(sale, *mode).map(|msg| Message::Sale(*id, msg))
             }
@@ -157,39 +171,50 @@ impl App {
             Operation::Sale(sale_id, operation) => match operation {
                 sale::Operation::Back => match self.screen {
                     Screen::List => {}
-                    Screen::Sale(mode, sale_id) => match mode {
+                    Screen::Sale(mode, _) => match mode {
                         sale::Mode::Edit => self.screen = Screen::Sale(sale::Mode::View, sale_id),
                         sale::Mode::View => self.screen = Screen::List,
                     },
                 },
                 sale::Operation::Save => {
-                    if sale_id == self.pending_sale.0 {
-                        // take ownership of the current pending sale
-                        // and replace it with a new default blank sale
-                        // before inserting this one into the sales map
-                        let current_sale =
-                            std::mem::replace(&mut self.pending_sale.1, Sale::default());
-
-                        let current_id = std::mem::replace(
-                            &mut self.pending_sale.0,
-                            self.next_sale_id.fetch_add(1, Ordering::SeqCst),
-                        );
-
-                        self.sales.insert(current_id, current_sale);
-                        self.screen = Screen::Sale(sale::Mode::View, current_id);
-                    } else {
-                        self.screen = Screen::Sale(sale::Mode::View, sale_id);
-                    }
+                    let final_id = match self.draft.0 {
+                        Some(id) => {
+                            // Editing existing sale
+                            self.sales.insert(id, self.draft.1.clone());
+                            id
+                        }
+                        None => {
+                            // Creating new sale
+                            let new_id = self.next_sale_id.fetch_add(1, Ordering::SeqCst);
+                            self.sales.insert(new_id, std::mem::take(&mut self.draft.1));
+                            self.draft.1 = Sale::default();
+                            new_id
+                        }
+                    };
+                    self.screen = Screen::Sale(sale::Mode::View, Some(final_id));
                 }
                 sale::Operation::StartEdit => {
+                    if let Some(id) = sale_id {
+                        // Start editing existing sale
+                        self.draft = (Some(id), self.sales[&id].clone());
+                    }
                     self.screen = Screen::Sale(sale::Mode::Edit, sale_id);
                 }
                 sale::Operation::Cancel => {
+                    match sale_id {
+                        Some(id) => {
+                            // Restore draft from original sale
+                            self.draft = (Some(id), self.sales[&id].clone());
+                        }
+                        None => {
+                            // Reset to blank draft
+                            self.draft = (None, Sale::default());
+                        }
+                    }
                     self.screen = Screen::Sale(sale::Mode::View, sale_id);
                 }
             },
         }
-
         Task::none()
     }
 

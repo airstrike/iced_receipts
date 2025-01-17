@@ -13,7 +13,7 @@ pub enum Message {
 
 pub fn view(sale: &Sale) -> Element<Message> {
     let header = row![
-        button("←").on_press(Message::Back),
+        button("←").width(40).on_press(Message::Back),
         text(&sale.name).size(16),
         horizontal_space(),
         button("Edit").on_press(Message::StartEdit)
@@ -28,8 +28,7 @@ pub fn view(sale: &Sale) -> Element<Message> {
         text("Tax Group").width(140.0),
         text("Total").align_x(Alignment::End).width(100.0),
     ]
-    .spacing(2)
-    .padding([0, 10]);
+    .spacing(2);
 
     let items_list = sale.items.iter().fold(
         column![column_headers].spacing(5).width(Length::Fill),

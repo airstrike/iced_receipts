@@ -12,7 +12,6 @@ use super::{Sale, TaxGroup};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Back,
     NameChanged(String),
     AddItem,
     RemoveItem(usize),
@@ -33,7 +32,7 @@ pub enum ItemUpdate {
 
 pub fn view(sale: &Sale) -> Element<Message> {
     let header = row![
-        button("←").on_press(Message::Back),
+        horizontal_space().width(40),
         text_input("Sale Name", &sale.name)
             .on_input(Message::NameChanged)
             .padding(5),

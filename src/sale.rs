@@ -84,7 +84,9 @@ impl Sale {
     pub fn calculate_tax(&self) -> f32 {
         self.items
             .iter()
-            .map(|item| item.price() * item.quantity() * item.tax_group.tax_rate())
+            .map(|item| {
+                item.price() * item.quantity() * item.tax_group.tax_rate()
+            })
             .sum()
     }
 
@@ -179,14 +181,23 @@ pub fn update(sale: &mut Sale, message: Message) -> Action {
                 // are filled out, add a new item and move to it instead
                 if let Some(item) = sale.items.iter().find(|i| i.id == id) {
                     return if item.name.is_empty() {
-                        Action::task(text_input::focus(edit::form_id("name", id)))
+                        Action::task(text_input::focus(edit::form_id(
+                            "name", id,
+                        )))
                     } else if item.quantity.is_none() {
-                        Action::task(text_input::focus(edit::form_id("quantity", id)))
+                        Action::task(text_input::focus(edit::form_id(
+                            "quantity", id,
+                        )))
                     } else if item.price.is_none() {
-                        Action::task(text_input::focus(edit::form_id("price", id)))
+                        Action::task(text_input::focus(edit::form_id(
+                            "price", id,
+                        )))
                     } else {
                         sale.items.push(SaleItem::default());
-                        Action::task(text_input::focus(edit::form_id("name", id + 1)))
+                        Action::task(text_input::focus(edit::form_id(
+                            "name",
+                            id + 1,
+                        )))
                     };
                 } else {
                     Action::none()

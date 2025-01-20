@@ -1,5 +1,7 @@
 //! A read-only view of a sale.
-use iced::widget::{button, column, container, horizontal_space, row, scrollable, text};
+use iced::widget::{
+    button, column, container, horizontal_space, row, scrollable, text,
+};
 use iced::Length::Fill;
 use iced::{Alignment, Element, Length};
 

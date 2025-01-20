@@ -1,7 +1,7 @@
 //! Edit new and existing sales
 use iced::widget::{
-    button, column, container, focus_next, focus_previous, horizontal_space, pick_list, row,
-    scrollable, text, text_input,
+    button, column, container, focus_next, focus_previous, horizontal_space,
+    pick_list, row, scrollable, text, text_input,
 };
 use iced::Length::Fill;
 use iced::{Alignment, Element, Length};
@@ -72,27 +72,43 @@ pub fn view(sale: &Sale) -> Element<Message> {
                     row![
                         text_input("Item name", &item.name)
                             .id(form_id("name", item.id))
-                            .on_input(|s| Message::UpdateItem(item.id, Field::Name(s)))
+                            .on_input(|s| Message::UpdateItem(
+                                item.id,
+                                Field::Name(s)
+                            ))
                             .on_submit(Message::SubmitItem(item.id))
                             .width(Fill)
                             .padding(5),
                         text_input("Quantity", &item.quantity_string())
                             .id(form_id("quantity", item.id))
                             .align_x(Alignment::Center)
-                            .on_input(|s| Message::UpdateItem(item.id.clone(), Field::Quantity(s)))
+                            .on_input(|s| Message::UpdateItem(
+                                item.id.clone(),
+                                Field::Quantity(s)
+                            ))
                             .on_submit(Message::SubmitItem(item.id))
                             .width(80.0)
                             .padding(5),
                         text_input("Price", &item.price_string())
                             .id(form_id("price", item.id))
                             .align_x(Alignment::End)
-                            .on_input(|s| Message::UpdateItem(item.id, Field::Price(s)))
+                            .on_input(|s| Message::UpdateItem(
+                                item.id,
+                                Field::Price(s)
+                            ))
                             .on_submit(Message::SubmitItem(item.id))
                             .width(100.0)
                             .padding(5),
-                        pick_list(&TaxGroup::ALL[..], Some(item.tax_group), move |tax_group| {
-                            Message::UpdateItem(item.id, Field::TaxGroup(tax_group))
-                        })
+                        pick_list(
+                            &TaxGroup::ALL[..],
+                            Some(item.tax_group),
+                            move |tax_group| {
+                                Message::UpdateItem(
+                                    item.id,
+                                    Field::TaxGroup(tax_group),
+                                )
+                            }
+                        )
                         .width(140.0),
                         text(format!("${:.2}", item.price() * item.quantity()))
                             .align_x(Alignment::End)

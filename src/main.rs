@@ -75,8 +75,12 @@ impl App {
                 );
 
                 match mode {
-                    sale::Mode::View => format!("iced Receipts • {}", sale_name),
-                    sale::Mode::Edit => format!("iced Receipts • {} • Edit", sale_name),
+                    sale::Mode::View => {
+                        format!("iced Receipts • {}", sale_name)
+                    }
+                    sale::Mode::Edit => {
+                        format!("iced Receipts • {} • Edit", sale_name)
+                    }
                 }
             }
         }
@@ -120,11 +124,12 @@ impl App {
                         .map_operation(move |o| Operation::Sale(sale_id, o))
                         .map(move |m| Message::Sale(sale_id, m));
 
-                    let operation_task = if let Some(operation) = action.operation {
-                        self.perform(operation)
-                    } else {
-                        Task::none()
-                    };
+                    let operation_task =
+                        if let Some(operation) = action.operation {
+                            self.perform(operation)
+                        } else {
+                            Task::none()
+                        };
 
                     return operation_task.chain(action.task);
                 }
@@ -174,7 +179,10 @@ impl App {
                 sale::Operation::Back => match self.screen {
                     Screen::List => {}
                     Screen::Sale(mode, _) => match mode {
-                        sale::Mode::Edit => self.screen = Screen::Sale(sale::Mode::View, sale_id),
+                        sale::Mode::Edit => {
+                            self.screen =
+                                Screen::Sale(sale::Mode::View, sale_id)
+                        }
                         sale::Mode::View => self.screen = Screen::List,
                     },
                 },
@@ -187,13 +195,19 @@ impl App {
                         }
                         None => {
                             // Creating new sale
-                            let new_id = self.next_sale_id.fetch_add(1, Ordering::SeqCst);
-                            self.sales.insert(new_id, std::mem::take(&mut self.draft.1));
+                            let new_id = self
+                                .next_sale_id
+                                .fetch_add(1, Ordering::SeqCst);
+                            self.sales.insert(
+                                new_id,
+                                std::mem::take(&mut self.draft.1),
+                            );
                             self.draft.1 = Sale::default();
                             new_id
                         }
                     };
-                    self.screen = Screen::Sale(sale::Mode::View, Some(final_id));
+                    self.screen =
+                        Screen::Sale(sale::Mode::View, Some(final_id));
                 }
                 sale::Operation::StartEdit => {
                     if let Some(id) = sale_id {
@@ -231,11 +245,21 @@ pub enum Hotkey {
     Tab(Modifiers),
 }
 
-fn handle_event(event: event::Event, _: event::Status, _: iced::window::Id) -> Option<Message> {
+fn handle_event(
+    event: event::Event,
+    _: event::Status,
+    _: iced::window::Id,
+) -> Option<Message> {
     match event {
-        event::Event::Keyboard(keyboard::Event::KeyPressed { key, modifiers, .. }) => match key {
+        event::Event::Keyboard(keyboard::Event::KeyPressed {
+            key,
+            modifiers,
+            ..
+        }) => match key {
             Key::Named(Named::Escape) => Some(Message::Hotkey(Hotkey::Escape)),
-            Key::Named(Named::Tab) => Some(Message::Hotkey(Hotkey::Tab(modifiers))),
+            Key::Named(Named::Tab) => {
+                Some(Message::Hotkey(Hotkey::Tab(modifiers)))
+            }
             _ => None,
         },
         _ => None,

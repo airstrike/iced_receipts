@@ -15,8 +15,11 @@ pub enum Message {
 pub fn view(sales: &HashMap<usize, Sale>) -> Element<'_, Message> {
     let main_content: Element<_> = if sales.is_empty() {
         container(
-            button(text("Create your first sale →").shaping(text::Shaping::Advanced))
-                .on_press(Message::NewSale),
+            button(
+                text("Create your first sale →")
+                    .shaping(text::Shaping::Advanced),
+            )
+            .on_press(Message::NewSale),
         )
         .center(Fill)
         .into()
@@ -31,7 +34,9 @@ pub fn view(sales: &HashMap<usize, Sale>) -> Element<'_, Message> {
                         text(format!("{}", sale.name)).size(13),
                         text(format!("Total: ${:.2}", total)).size(12).style(
                             |theme: &iced::Theme| text::Style {
-                                color: Some(theme.palette().text.scale_alpha(0.8)),
+                                color: Some(
+                                    theme.palette().text.scale_alpha(0.8)
+                                ),
                             }
                         )
                     ]

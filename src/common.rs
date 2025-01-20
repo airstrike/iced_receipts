@@ -84,7 +84,10 @@ impl<Operation, Message> Action<Operation, Message> {
     }
 
     /// Map the message of the `Action`'s [`Task`](iced::Task) to a different type.
-    pub fn map<N>(self, f: impl Fn(Message) -> N + MaybeSend + 'static) -> Action<Operation, N>
+    pub fn map<N>(
+        self,
+        f: impl Fn(Message) -> N + MaybeSend + 'static,
+    ) -> Action<Operation, N>
     where
         Message: MaybeSend + 'static,
         N: MaybeSend + 'static,

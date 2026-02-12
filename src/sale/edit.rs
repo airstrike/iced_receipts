@@ -1,9 +1,9 @@
 //! Edit new and existing sales
+use iced::widget::operation::{focus_next, focus_previous};
 use iced::widget::{
-    button, column, container, focus_next, focus_previous, horizontal_space,
-    pick_list, row, scrollable, text, text_input,
+    button, column, container, pick_list, row, scrollable, space, text,
+    text_input,
 };
-use iced::Alignment::Center;
 use iced::{Alignment, Element, Fill};
 
 use super::{Action, Instruction, Sale, TaxGroup};
@@ -31,14 +31,14 @@ pub enum Field {
     TaxGroup(TaxGroup),
 }
 
-pub fn view(sale: &Sale) -> Element<Message> {
+pub fn view(sale: &Sale) -> Element<'_, Message> {
     let header = row![
-        horizontal_space().width(40),
+        space::horizontal().width(40),
         text_input("Sale Name", &sale.name)
             .on_input(Message::NameInput)
             .on_submit(Message::NameSubmit)
             .padding(5),
-        horizontal_space(),
+        space::horizontal(),
         row![
             button("Cancel")
                 .on_press(Message::Cancel)
@@ -58,7 +58,7 @@ pub fn view(sale: &Sale) -> Element<Message> {
         text("Price").align_x(Alignment::End).width(100.0),
         text("Tax Group").width(140.0),
         text("Total").align_x(Alignment::End).width(100.0),
-        horizontal_space().width(25),
+        space::horizontal().width(25),
     ]
     .spacing(2)
     .padding([0, 10]);
@@ -129,7 +129,7 @@ pub fn view(sale: &Sale) -> Element<Message> {
     let totals = column![
         row![
             text("Subtotal").width(150.0),
-            horizontal_space(),
+            space::horizontal(),
             text(format!("${:.2}", sale.calculate_subtotal()))
         ],
         row![
@@ -152,12 +152,12 @@ pub fn view(sale: &Sale) -> Element<Message> {
                 text("%")
             ]
             .spacing(5),
-            horizontal_space(),
+            space::horizontal(),
             text(format!("${:.2}", sale.calculate_service_charge()))
         ],
         row![
             text("Tax").width(150.0),
-            horizontal_space(),
+            space::horizontal(),
             text(format!("${:.2}", sale.calculate_tax()))
         ],
         row![
@@ -176,12 +176,12 @@ pub fn view(sale: &Sale) -> Element<Message> {
                 s.parse().ok().unwrap_or(0.0)
             }))
             .on_submit(Message::Save),
-            horizontal_space(),
+            space::horizontal(),
             text(format!("${:.2}", sale.gratuity_amount.unwrap_or(0.0)))
         ],
         row![
             text("Total").width(150.0).size(16),
-            horizontal_space(),
+            space::horizontal(),
             text(format!("${:.2}", sale.calculate_total())).size(16)
         ]
     ]
@@ -225,6 +225,6 @@ pub fn handle_hotkey(hotkey: Hotkey) -> Action<Instruction, Message> {
     }
 }
 
-pub fn form_id(field: &str, id: usize) -> text_input::Id {
-    text_input::Id::new(format!("{}-{}", field, id))
+pub fn form_id(field: &str, id: usize) -> iced::widget::Id {
+    iced::widget::Id::from(format!("{}-{}", field, id))
 }

@@ -52,7 +52,6 @@
 //!     Run(Task<Message>),
 //! }
 //! ```
-use iced::advanced::graphics::futures::MaybeSend;
 use iced::Task;
 use std::fmt;
 
@@ -98,11 +97,11 @@ impl<I, Message> Action<I, Message> {
     /// Map the message of the `Action`'s [`Task`](iced::Task) to a different type.
     pub fn map<N>(
         self,
-        f: impl Fn(Message) -> N + MaybeSend + 'static,
+        f: impl Fn(Message) -> N + Send + 'static,
     ) -> Action<I, N>
     where
-        Message: MaybeSend + 'static,
-        N: MaybeSend + 'static,
+        Message: Send + 'static,
+        N: Send + 'static,
     {
         Action {
             instruction: self.instruction,
@@ -113,11 +112,11 @@ impl<I, Message> Action<I, Message> {
     /// Maps the `Instruction` of the `Action` to a different type.
     pub fn map_instruction<N>(
         self,
-        f: impl Fn(I) -> N + MaybeSend + 'static,
+        f: impl Fn(I) -> N + Send + 'static,
     ) -> Action<N, Message>
     where
-        I: MaybeSend + 'static,
-        N: MaybeSend + 'static,
+        I: Send + 'static,
+        N: Send + 'static,
     {
         Action {
             instruction: self.instruction.map(f),

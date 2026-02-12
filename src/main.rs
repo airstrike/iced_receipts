@@ -1,7 +1,7 @@
 use iced::event;
 use iced::keyboard::key::Named;
 use iced::keyboard::{self, Key, Modifiers};
-use iced::widget::focus_next;
+use iced::widget::operation::focus_next;
 use iced::{Element, Size, Subscription, Task};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -15,13 +15,14 @@ pub use action::Action;
 use sale::Sale;
 
 fn main() -> iced::Result {
-    iced::application(App::title, App::update, App::view)
+    iced::application(App::new, App::update, App::view)
+        .title(App::title)
         .window_size(Size::new(800.0, 600.0))
         .theme(App::theme)
         .antialiasing(true)
         .centered()
         .subscription(App::subscription)
-        .run_with(App::new)
+        .run()
 }
 
 #[derive(Debug)]
@@ -160,7 +161,7 @@ impl App {
         Task::none()
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match &self.screen {
             Screen::List => list::view(&self.sales).map(Message::List),
             Screen::Sale(mode, id) => {
